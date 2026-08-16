@@ -1,0 +1,39 @@
+name: Build SRS
+
+on:
+  push:
+    paths:
+      - 'ielts-direct.json'
+      - '.github/workflows/build-srs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download sing-box
+        run: |
+          VERSION=1.13.18
+          curl -L -o sing-box.tar.gz "https://github.com/SagerNet/sing-box/releases/download/v${VERSION}/sing-box-${VERSION}-linux-amd64.tar.gz"
+          tar -xzf sing-box.tar.gz
+          cp "sing-box-${VERSION}-linux-amd64/sing-box" ./sing-box
+          chmod +x ./sing-box
+
+      - name: Compile rule set
+        run: |
+          ./sing-box rule-set compile --output ielts-direct.srs ielts-direct.json
+          ls -lh ielts-direct.srs
+
+      - name: Commit compiled SRS
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ielts-direct.srs
+          git diff --cached --quiet || git commit -m "Build ielts-direct.srs"
+          git push
